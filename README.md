@@ -106,7 +106,7 @@ Os dados são enviados automaticamente pelo ESP32, processados pelo FIWARE e exi
 
 ### 🔹 Registro do dispositivo no IoT Agent
 ```bash
-curl -iX POST "http://54.172.140.81:4041/iot/devices" \
+curl -iX POST "http://44.223.43.74:4041/iot/devices" \
   -H "Content-Type: application/json" \
   -H "fiware-service: smart" \
   -H "fiware-servicepath: /" \
@@ -127,7 +127,7 @@ curl -iX POST "http://54.172.140.81:4041/iot/devices" \
 
 ### 🔔 Subscription para enviar histórico ao STH-Comet
 ```bash
-curl -iX POST "http://54.172.140.81:1026/v2/subscriptions" \
+curl -iX POST "http://44.223.43.74:1026/v2/subscriptions" \
   -H "Content-Type: application/json" \
   -H "fiware-service: smart" \
   -H "fiware-servicepath: /" \
@@ -148,13 +148,13 @@ curl -iX POST "http://54.172.140.81:1026/v2/subscriptions" \
 
 ### 📦 Verificar dados no Orion
 ```bash
-curl "http://54.172.140.81:1026/v2/entities/urn:ngsi-ld:device:001" \
+curl "http://44.223.43.74:1026/v2/entities/urn:ngsi-ld:device:001" \
   -H "fiware-service: smart" -H "fiware-servicepath: /" | jq .
 ```
 
 ### 📊 Ver histórico no STH-Comet
 ```bash
-curl "http://54.172.140.81:8666/STH/v1/contextEntities/type/device/id/urn:ngsi-ld:device:001/attributes/hr?lastN=10" \
+curl "http://44.223.43.74:8666/STH/v1/contextEntities/type/device/id/urn:ngsi-ld:device:001/attributes/hr?lastN=10" \
   -H "fiware-service: smart" -H "fiware-servicepath: /" | jq .
 ```
 
