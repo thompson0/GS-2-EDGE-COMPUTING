@@ -1,162 +1,217 @@
-# 🛰️ Projeto Edge - Sprint 4
+# 🩺 Projeto Edge — Sprint 4  
+### **Monitoramento de Pressão Arterial com ESP32 + MQTT + FIWARE + Next.js**
 
-# 👷 Integrantes  
-Gabriel Thompson — RM563126 <br>
-Nicolas Baradel — RM563245 <br>
-Enzo Quarelo — RM61503 <br>
-
-
-**Monitoramento de Batimentos Cardíacos e Calorias com ESP32 + FIWARE + Next.js**
+## 👷 Integrantes  
+- **Gabriel Thompson** — RM563126  
+- **Nicolas Baradel** — RM563245  
+- **Enzo Quarelo** — RM61503  
 
 ---
 
-## 📘 Descrição do Projeto
+# 📘 Descrição do Projeto
 
-Este projeto tem como objetivo demonstrar a integração entre **dispositivos IoT (ESP32)** e a **plataforma FIWARE**, utilizando **MQTT** para comunicação e **Next.js** para visualização dos dados em tempo real.
+Este projeto apresenta um sistema completo de **monitoramento de pressão arterial** utilizando:
 
-O sistema simula um dispositivo que envia **batimentos cardíacos** e **calorias** a cada 5 segundos, armazena as informações no **FIWARE** (via Orion e STH-Comet), e exibe os resultados num **dashboard web interativo**.
+- **ESP32** (simulado no Wokwi)  
+- **MQTT (Mosquitto)**  
+- **FIWARE IoT Agent UL**  
+- **Orion Context Broker**  
+- **STH-Comet**  
+- **Next.js** para visualização dos dados  
+
+As medições simuladas de:
+
+- **Pressão Sistólica (SYS)**
+- **Pressão Diastólica (DIA)**
+
+são enviadas pelo ESP32 → FIWARE → Dashboard web em tempo real.
 
 ---
 
-## ⚙️ Arquitetura Geral
+# ⚙️ Arquitetura Geral
 
 ```
-ESP32 → MQTT (IoT Agent) → Orion Context Broker → STH-Comet → Dashboard Next.js
+ESP32
+  ↓ MQTT (Mosquitto)
+IoT Agent UL
+  ↓ NGSI
+Orion Context Broker
+  ↓ Notificação
+STH-Comet (Histórico)
+  ↓ API Proxy
+Dashboard Next.js
 ```
 
-### 🧩 Componentes principais:
+---
 
-* **ESP32 (simulado no Wokwi)** → Gera dados e envia via MQTT.
-* **IoT Agent MQTT** → Traduz mensagens do ESP32 para o formato NGSI.
-* **Orion Context Broker** → Armazena o estado atual do dispositivo.
-* **STH-Comet** → Guarda o histórico das medições.
-* **Next.js + Recharts + Shadcn/UI** → Exibe os dados em gráficos.
+# 🧩 Componentes Utilizados
+
+| Componente | Função |
+|-----------|--------|
+| **ESP32** | Gera leituras e envia via MQTT |
+| **Mosquitto** | Broker MQTT |
+| **IoT Agent UL** | Traduz UltraLight → NGSI |
+| **Orion CB** | Armazena estado atual do dispositivo |
+| **STH-Comet** | Guarda o histórico (time-series) |
+| **MongoDB** | Armazenamento |
+| **Next.js 14** | Front-end do dashboard |
+| **Recharts** | Gráficos |
+| **Shadcn/UI** | Layout |
 
 ---
 
-## 💻 Código do ESP32 (Resumo)
+# 💻 ESP32 — Publicação UL
 
-O código do microcontrolador realiza as seguintes etapas:
+O dispositivo publica no tópico:
 
-1. Conecta-se ao **Wi-Fi** e ao **broker MQTT**.
-2. Simula sensores de **batimentos cardíacos** e **calorias**.
-3. Publica os valores nos tópicos MQTT do IoT Agent.
-4. Recebe comandos do FIWARE (ex: ligar/desligar LED).
-5. Envia dados a cada 5 segundos para o Orion e o STH-Comet.
+```
+12345/Sensor001/attrs
+```
 
-Essas informações são processadas e ficam disponíveis para visualização no dashboard.
+Com payload UltraLight:
+
+```
+sys|120|dia|80
+```
+
+Enviado a cada **3 segundos**.
 
 ---
 
-## 🌐 Dashboard Next.js
-
-O front-end foi desenvolvido com **Next.js 14**, **Recharts** e **Shadcn/UI** para um design limpo e responsivo.
-
-### Estrutura
-
-* `/app/page.jsx` → Página principal do dashboard
-* `/components/DeviceHistoryChart.jsx` → Gráfico dinâmico que mostra HR e CAL
-* `/api/sth/route.js` → Proxy interno para o STH-Comet (resolve CORS)
-
-### Execução
+# 🗂️ Registro do Device no IoT Agent
 
 ```bash
-npm install
-npm run dev
-```
-
-Acesse em [http://localhost:3000](http://localhost:3000)
-
----
-
-## 🧩 Fluxo de Dados Simplificado
-
-1. O ESP32 envia os dados via **MQTT**.
-2. O **IoT Agent** traduz para **NGSI** e envia ao **Orion**.
-3. O **Orion** notifica o **STH-Comet**, que salva o histórico.
-4. O **Next.js Dashboard** busca esses dados e exibe em gráficos.
-
----
-
-## 🖥️ Tecnologias Utilizadas
-
-* **ESP32 (Arduino + Wokwi)**
-* **FIWARE Stack:** Orion, IoT Agent MQTT, Mosquitto, STH-Comet
-* **MongoDB**
-* **Next.js 14**
-* **Recharts**
-* **Shadcn/UI**
-* **cURL / jq** (para configuração e debug)
-
----
-
-## 📊 Resultado Final
-
-O sistema exibe dois gráficos atualizados em tempo real:
-
-* **Batimentos Cardíacos (HR)**
-* **Calorias (CAL)**
-
-Os dados são enviados automaticamente pelo ESP32, processados pelo FIWARE e exibidos no dashboard web.
-
-
----
-
-## 🧠 Poc
-
-### 🔹 Registro do dispositivo no IoT Agent
-```bash
-curl -iX POST "http://44.223.43.74:4041/iot/devices" \
-  -H "Content-Type: application/json" \
-  -H "fiware-service: smart" \
-  -H "fiware-servicepath: /" \
-  -d '{
+curl -iX POST "http://localhost:4041/iot/devices"   -H "Content-Type: application/json"   -H "fiware-service: smart"   -H "fiware-servicepath: /"   -d '{
     "devices": [{
-      "device_id": "device001",
-      "entity_name": "urn:ngsi-ld:device:001",
-      "entity_type": "device",
-      "protocol": "PDI-IoTA-UltraLight",
+      "device_id": "Sensor001",
+      "entity_name": "Sensor001",
+      "entity_type": "Device",
       "transport": "MQTT",
+      "protocol": "PDI-IoTA-UltraLight",
       "attributes": [
-        { "object_id": "hr", "name": "hr", "type": "Integer" },
-        { "object_id": "cal", "name": "cal", "type": "Integer" }
+        { "object_id": "sys", "name": "sys", "type": "Number" },
+        { "object_id": "dia", "name": "dia", "type": "Number" }
       ]
     }]
   }'
 ```
 
-### 🔔 Subscription para enviar histórico ao STH-Comet
+---
+
+# 🔔 Criar Subscription → STH-Comet
+
 ```bash
-curl -iX POST "http://44.223.43.74:1026/v2/subscriptions" \
-  -H "Content-Type: application/json" \
-  -H "fiware-service: smart" \
-  -H "fiware-servicepath: /" \
-  -d '{
-    "description": "Notify STH-Comet of HR/Cal changes",
+curl -iX POST "http://localhost:1026/v2/subscriptions"   -H "Content-Type: application/json"   -H "fiware-service": "smart"   -H "fiware-servicepath": "/"   -d '{
+    "description": "Salvar historico SYS/DIA no STH-Comet",
     "subject": {
-      "entities": [{ "id": "urn:ngsi-ld:device:001", "type": "device" }],
-      "condition": { "attrs": ["hr", "cal"] }
+      "entities": [{ "id": "Sensor001", "type": "Device" }],
+      "condition": { "attrs": ["sys", "dia"] }
     },
     "notification": {
-      "http": { "url": "http://sth-comet:8666/notify" },
-      "attrs": ["hr", "cal"],
+      "http": { "url": "http://fiware-sth-comet:8666/notify" },
+      "attrs": ["sys","dia"],
       "attrsFormat": "legacy"
     },
     "throttling": 1
   }'
 ```
 
-### 📦 Verificar dados no Orion
+---
+
+# 📦 Consultar estado atual no Orion
+
 ```bash
-curl "http://44.223.43.74:1026/v2/entities/urn:ngsi-ld:device:001" \
-  -H "fiware-service: smart" -H "fiware-servicepath: /" | jq .
+curl "http://localhost:1026/v2/entities/Sensor001"   -H "fiware-service: smart"   -H "fiware-servicepath: /" | jq
 ```
 
-### 📊 Ver histórico no STH-Comet
+---
+
+# 📊 Buscar histórico no STH-Comet
+
+SYS:
+
 ```bash
-curl "http://44.223.43.74:8666/STH/v1/contextEntities/type/device/id/urn:ngsi-ld:device:001/attributes/hr?lastN=10" \
-  -H "fiware-service: smart" -H "fiware-servicepath: /" | jq .
+curl "http://localhost:8666/STH/v1/contextEntities/type/Device/id/Sensor001/attributes/sys?lastN=10"   -H "fiware-service: smart"   -H "fiware-servicepath: /" | jq
 ```
 
+DIA:
 
+```bash
+curl "http://localhost:8666/STH/v1/contextEntities/type/Device/id/Sensor001/attributes/dia?lastN=10"   -H "fiware-service: smart"   -H "fiware-servicepath: /" | jq
+```
 
+---
+
+# 🌐 Dashboard Next.js (Front-End)
+
+O Next.js não pode acessar diretamente o LocalToNet (CORS).  
+Então criamos uma rota proxy:
+
+---
+
+# 📡 `/api/sth` — Proxy interno (resolve CORS + SSL)
+
+```js
+import https from "https";
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const attr = searchParams.get("attr") || "sys";
+  const lastN = searchParams.get("lastN") || 20;
+
+  const agent = new https.Agent({ rejectUnauthorized: false });
+
+  const STH = "https://SEU_TUNEL.localto.net";
+
+  const url = `${STH}/STH/v1/contextEntities/type/Device/id/Sensor001/attributes/${attr}?lastN=${lastN}`;
+
+  const res = await fetch(url, {
+    headers: {
+      "fiware-service": "smart",
+      "fiware-servicepath": "/",
+    },
+    agent,
+  });
+
+  return Response.json(await res.json());
+}
+```
+
+---
+
+# 📈 Gráficos (SYS/DIA)
+
+- Atualização automática  
+- Dados reais do STH-Comet  
+- Tabela com últimos valores  
+- Interface moderna com Shadcn/UI  
+
+---
+
+# 🖥️ Executar Projeto
+
+```bash
+npm install
+npm run dev
+```
+
+Acesse:
+
+```
+http://localhost:3000
+```
+
+---
+
+# 🎉 Resultado Final
+
+O dashboard exibe:
+
+- Pressão Sistólica (SYS)
+- Pressão Diastólica (DIA)
+- Gráficos históricos
+- Dados em tempo real
+
+Sistema completo ESP32 → FIWARE → Web Dashboard.

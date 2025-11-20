@@ -8,7 +8,7 @@ import DeviceHistoryChart from "@/components/ChartCalorie"; // continua usando o
 
 export default function Home() {
   return (
-    <ScrollArea className="h-screen w-full p-6 bg-gradient-to-b from-background to-muted/20">
+    <ScrollArea className="h-screen w-full p-6  from-background to-muted/20">
       <motion.div
         className="flex flex-col gap-6 max-w-6xl mx-auto"
         initial={{ opacity: 0, y: 15 }}

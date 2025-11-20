@@ -1,55 +1,44 @@
-// app/api/sth/route.js
+import https from "https";
 
-const STH_HOST = "u0wskv8jt.localto.net";  // Host LocalToNet
-const STH_PORT = 6047;                     // Porta LocalToNet
-
-const FIWARE_SERVICE = "smart";
-const FIWARE_SSP = "/";
-const ENTITY_TYPE = "Device";
-const ENTITY_ID = "urn:ngsi-ld:Device:001";
+// ⚠️ GAMBIARRA GLOBAL — desativa validação SSL no Node
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-
-  const attr = searchParams.get("attr") || "sys";
-  const lastN = searchParams.get("lastN") || "20";
-
-  const sthUrl = `http://${STH_HOST}:${STH_PORT}/STH/v1/contextEntities/type/${ENTITY_TYPE}/id/${encodeURIComponent(
-    ENTITY_ID
-  )}/attributes/${encodeURIComponent(attr)}?lastN=${lastN}`;
-
-  console.log("🔎 Consultando STH:", sthUrl);
-
   try {
-    const resp = await fetch(sthUrl, {
-      headers: {
-        "fiware-service": FIWARE_SERVICE,
-        "fiware-servicepath": FIWARE_SSP,
-        Accept: "application/json",
-      },
+    const { searchParams } = new URL(req.url);
+    const attr = searchParams.get("attr") || "sys";
+    const lastN = searchParams.get("lastN") || 20;
+
+    // LocalToNet HTTPS
+    const STH_BASE = "https://9ybcg4xpp.localto.net";
+
+    const url = `${STH_BASE}/STH/v1/contextEntities/type/Device/id/Sensor001/attributes/${attr}?lastN=${lastN}`;
+
+    // ⚠️ GAMBIARRA — agente HTTPS ignorando certificado
+    const agent = new https.Agent({
+      rejectUnauthorized: false,
     });
 
-    const body = await resp.text();
-
-    return new Response(body, {
-      status: resp.status,
+    const resp = await fetch(url, {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "fiware-service": "smart",
+        "fiware-servicepath": "/",
       },
+      agent,
+      cache: "no-store",
     });
+
+    if (!resp.ok) {
+      return Response.json(
+        { error: "Erro STH", status: resp.status },
+        { status: resp.status }
+      );
+    }
+
+    const raw = await resp.json();
+    return Response.json(raw);
   } catch (err) {
-    console.error("❌ ERRO NA API /api/sth =>", err);
-
-    return new Response(
-      JSON.stringify({
-        error: "Falha ao conectar ao STH-Comet",
-        details: err.message,
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return Response.json({ error: String(err) }, { status: 500 });
   }
 }
